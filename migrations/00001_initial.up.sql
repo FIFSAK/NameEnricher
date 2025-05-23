@@ -1,16 +1,16 @@
-CREATE TABLE genders
+CREATE TABLE IF NOT EXISTS genders
 (
     id   SERIAL PRIMARY KEY,
     name VARCHAR(10) NOT NULL UNIQUE
 );
 
-CREATE TABLE nationalities
+CREATE TABLE IF NOT EXISTS nationalities
 (
     id   SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE
 );
 
-CREATE TABLE persons
+CREATE TABLE IF NOT EXISTS persons
 (
     id             SERIAL PRIMARY KEY,
     name           TEXT NOT NULL,

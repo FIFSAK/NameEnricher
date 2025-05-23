@@ -2,179 +2,120 @@ package models
 
 import (
 	"NameEnricher/pkg/logger"
+	"context"
+	"database/sql"
 	"fmt"
-	"strings"
-	"time"
 )
 
 type Person struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	GroupName   string    `gorm:"not null" json:"group_name"`
-	SongName    string    `gorm:"not null" json:"song_name"`
-	ReleaseDate time.Time `gorm:"not null" json:"release_date"`
-	Text        string    `gorm:"not null" json:"text"`
-	Link        string    `gorm:"not null" json:"link"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            uint   `json:"id"`
+	Name          string `json:"name"`
+	Surname       string `json:"surname"`
+	Patronymic    string `json:"patronymic,omitempty"`
+	Age           int    `json:"age"`
+	GenderID      int    `json:"gender_id"`
+	NationalityID int    `json:"nationality_id"`
 }
 
-type SongFilter struct {
-	ID          uint
-	GroupName   string
-	SongName    string
-	ReleaseDate time.Time
-	Text        string
-	Page        int
-	Limit       int
+type PersonFilter struct {
+	ID            uint
+	Name          string
+	Surname       string
+	Patronymic    string
+	AgeFrom       int
+	AgeTo         int
+	GenderID      int
+	NationalityID int
 }
 
-type CreateSongInput struct {
-	Group string `json:"group" binding:"required" example:"Test Group"`
-	Song  string `json:"song" binding:"required" example:"Test Song"`
-}
+func GetPersons(ctx context.Context, db *sql.DB, filter PersonFilter) ([]Person, error) {
+	var persons []Person
 
-type UpdateSongInput struct {
-	GroupName   string `json:"group_name" example:"Test Group"`
-	SongName    string `json:"song_name" example:"Test Song"`
-	ReleaseDate string `json:"release_date" example:"2006-06-19"`
-	Text        string `json:"text" example:"Test lyrics"`
-	Link        string `json:"link" example:"https://www.example.com"`
-}
+	query := "SELECT id, name, surname, patronymic, age, gender_id, nationality_id FROM persons WHERE 1=1"
+	var args []interface{}
+	var conditions []string
 
-func GetSongs(db *gorm.DB, filter SongFilter) ([]Song, error) {
-	var songs []Song
-	query := db.Model(&Song{})
+	paramCounter := 1
 
-	logger.Log.Debug("Building query for GetSongs")
-
-	if filter.ID != 0 {
-		query = query.Where("id = ?", filter.ID)
-		logger.Log.Debugf("Filter: ID = %d", filter.ID)
-	}
-	if filter.GroupName != "" {
-		query = query.Where("group_name ILIKE ?", "%"+filter.GroupName+"%")
-		logger.Log.Debugf("Filter: GroupName ILIKE '%%%s%%'", filter.GroupName)
-	}
-	if filter.SongName != "" {
-		query = query.Where("song_name ILIKE ?", "%"+filter.SongName+"%")
-		logger.Log.Debugf("Filter: SongName ILIKE '%%%s%%'", filter.SongName)
-	}
-	if !filter.ReleaseDate.IsZero() {
-		query = query.Where("release_date = ?", filter.ReleaseDate)
-		logger.Log.Debugf("Filter: ReleaseDate = %s", filter.ReleaseDate.Format("2006-01-02"))
-	}
-	if filter.Text != "" {
-		query = query.Where("text ILIKE ?", "%"+filter.Text+"%")
-		logger.Log.Debugf("Filter: Text ILIKE '%%%s%%'", filter.Text)
+	if filter.Name != "" {
+		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", paramCounter))
+		args = append(args, "%"+filter.Name+"%")
+		paramCounter++
 	}
 
-	if filter.Limit == 0 {
-		filter.Limit = 10
-		logger.Log.Debug("No limit provided, defaulting to 10")
+	if filter.Surname != "" {
+		conditions = append(conditions, fmt.Sprintf("surname ILIKE $%d", paramCounter))
+		args = append(args, "%"+filter.Surname+"%")
+		paramCounter++
 	}
-	if filter.Page <= 0 {
-		filter.Page = 1
-	}
-	offset := (filter.Page - 1) * filter.Limit
-	logger.Log.Debugf("Pagination: Page=%d, Limit=%d, Offset=%d", filter.Page, filter.Limit, offset)
 
-	err := query.Limit(filter.Limit).Offset(offset).Find(&songs).Error
+	if filter.AgeTo > 0 {
+		conditions = append(conditions, fmt.Sprintf("age <= $%d", paramCounter))
+		args = append(args, filter.AgeTo)
+		paramCounter++
+	}
+
+	if filter.AgeFrom > 0 {
+		conditions = append(conditions, fmt.Sprintf("age >= $%d", paramCounter))
+		args = append(args, filter.AgeFrom)
+		paramCounter++
+	}
+
+	if filter.GenderID > 0 {
+		conditions = append(conditions, fmt.Sprintf("gender_id = $%d", paramCounter))
+		args = append(args, filter.GenderID)
+		paramCounter++
+	}
+
+	if filter.NationalityID > 0 {
+		conditions = append(conditions, fmt.Sprintf("nationality_id = $%d", paramCounter))
+		args = append(args, filter.NationalityID)
+		paramCounter++
+	}
+
+	for _, condition := range conditions {
+		query += " AND " + condition
+	}
+
+	query += " ORDER BY id"
+
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
-		logger.Log.WithError(err).Error("Failed to fetch songs from database")
-	} else {
-		logger.Log.Infof("Fetched %d song(s) from database", len(songs))
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var person Person
+		err = rows.Scan(
+			&person.ID,
+			&person.Name,
+			&person.Surname,
+			&person.Patronymic,
+			&person.Age,
+			&person.GenderID,
+			&person.NationalityID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка сканирования строки: %w", err)
+		}
+		persons = append(persons, person)
 	}
 
-	return songs, err
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка при итерации по результатам: %w", err)
+	}
+
+	return persons, nil
 }
 
-func GetSongVerses(db *gorm.DB, id uint, page, limit int) ([]string, error) {
-	logger.Log.Debugf("Fetching song with ID: %d for verses", id)
-
-	var song Song
-	err := db.First(&song, id).Error
+func DeletePersonByID(ctx context.Context, id uint, db *sql.DB) (Person, error) {
+	var deletedPerson Person
+	err := db.QueryRowContext(ctx, "DELETE FROM persons WHERE id = $1", id).Scan(&deletedPerson)
 	if err != nil {
-		logger.Log.WithError(err).Errorf("Failed to fetch song with ID %d", id)
-		return nil, err
+		return Person{}, err
 	}
-
-	normalized := strings.ReplaceAll(song.Text, "\r\n", "\n")
-	verses := strings.Split(normalized, "\n\n")
-	fmt.Println(verses)
-	totalVerses := len(verses)
-	logger.Log.Debugf("Song ID %d has %d verses", id, totalVerses)
-
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 3
-	}
-
-	start := (page - 1) * limit
-	end := start + limit
-
-	if start > totalVerses {
-		logger.Log.Infof("Pagination out of range: start=%d > total=%d", start, totalVerses)
-		return []string{}, nil
-	}
-	if end > totalVerses {
-		end = totalVerses
-	}
-
-	selectedVerses := verses[start:end]
-	logger.Log.Infof("Returning verses %d to %d for song ID %d", start+1, end, id)
-	return selectedVerses, nil
+	return deletedPerson, nil
 }
 
-func CreateSong(db *gorm.DB, song *Song) error {
-	logger.Log.Infof("Creating song: Group=%s, Song=%s", song.GroupName, song.SongName)
-
-	err := db.Create(&song).Error
-	if err != nil {
-		logger.Log.WithError(err).Error("Failed to create song in database")
-	} else {
-		logger.Log.Infof("Song created successfully: ID=%d", song.ID)
-	}
-
-	return err
-}
-
-func UpdateSong(db *gorm.DB, updatedSong Song) error {
-	logger.Log.Debugf("Attempting to update song with ID=%d", updatedSong.ID)
-
-	var existing Song
-	err := db.First(&existing, updatedSong.ID).Error
-	if err != nil {
-		logger.Log.WithError(err).Errorf("Song with ID=%d not found for update", updatedSong.ID)
-		return err
-	}
-
-	existing.GroupName = updatedSong.GroupName
-	existing.SongName = updatedSong.SongName
-	existing.ReleaseDate = updatedSong.ReleaseDate
-	existing.Text = updatedSong.Text
-	existing.Link = updatedSong.Link
-
-	err = db.Save(&existing).Error
-	if err != nil {
-		logger.Log.WithError(err).Errorf("Failed to update song ID=%d", updatedSong.ID)
-	} else {
-		logger.Log.Infof("Song updated successfully: ID=%d", updatedSong.ID)
-	}
-
-	return err
-}
-
-func DeleteSong(db *gorm.DB, id uint) error {
-	logger.Log.Debugf("Attempting to delete song with ID=%d", id)
-
-	err := db.Delete(&Song{}, id).Error
-	if err != nil {
-		logger.Log.WithError(err).Errorf("Failed to delete song ID=%d", id)
-	} else {
-		logger.Log.Infof("Song deleted successfully: ID=%d", id)
-	}
-
-	return err
-}
+func UpdatePerson
