@@ -1,6 +1,7 @@
 package main
 
 import (
+	"NameEnricher/internal/handlers"
 	"NameEnricher/pkg/logger"
 	"database/sql"
 	"errors"
@@ -41,6 +42,26 @@ func main() {
 
 	router := gin.New()
 	router.Use(gin.LoggerWithWriter(logger.Log.Writer()), gin.Recovery())
+	gendersRouter := router.Group("/genders")
+	gendersRouter.GET("", handlers.GetGendersHandler(db))
+	gendersRouter.GET("/:id", handlers.GetGenderByIDHandler(db))
+	gendersRouter.POST("", handlers.CreateGenderHandler(db))
+	gendersRouter.PATCH("/:id", handlers.UpdateGenderHandler(db))
+	gendersRouter.DELETE("/:id", handlers.DeleteGenderHandler(db))
+
+	nationalitiesRouter := router.Group("/nationalities")
+	nationalitiesRouter.GET("", handlers.GetNationalitiesHandler(db))
+	nationalitiesRouter.GET("/:id", handlers.GetNationalityByIDHandler(db))
+	nationalitiesRouter.POST("", handlers.CreateNationalityHandler(db))
+	nationalitiesRouter.PATCH("/:id", handlers.UpdateNationalityHandler(db))
+	nationalitiesRouter.DELETE("/:id", handlers.DeleteNationalityHandler(db))
+
+	personsRouter := router.Group("/persons")
+	personsRouter.GET("", handlers.GetPersonsHandler(db))
+	personsRouter.GET("/:id", handlers.GetPersonByIDHandler(db))
+	personsRouter.POST("", handlers.CreatePersonHandler(db))
+	personsRouter.PATCH("/:id", handlers.UpdatePersonHandler(db))
+	personsRouter.DELETE("/:id", handlers.DeletePersonHandler(db))
 
 	port := os.Getenv("PORT")
 	if port == "" {
