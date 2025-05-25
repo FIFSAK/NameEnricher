@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "NameEnricher/docs"
 	"NameEnricher/internal/handlers"
 	"NameEnricher/pkg/logger"
 	"database/sql"
@@ -10,7 +11,8 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
-
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"os"
 )
 
@@ -42,6 +44,8 @@ func main() {
 
 	router := gin.New()
 	router.Use(gin.LoggerWithWriter(logger.Log.Writer()), gin.Recovery())
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	gendersRouter := router.Group("/genders")
 	gendersRouter.GET("", handlers.GetGendersHandler(db))
 	gendersRouter.GET("/:id", handlers.GetGenderByIDHandler(db))
@@ -58,7 +62,6 @@ func main() {
 
 	personsRouter := router.Group("/persons")
 	personsRouter.GET("", handlers.GetPersonsHandler(db))
-	personsRouter.GET("/:id", handlers.GetPersonByIDHandler(db))
 	personsRouter.POST("", handlers.CreatePersonHandler(db))
 	personsRouter.PATCH("/:id", handlers.UpdatePersonHandler(db))
 	personsRouter.DELETE("/:id", handlers.DeletePersonHandler(db))

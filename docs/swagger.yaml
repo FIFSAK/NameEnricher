@@ -1,9 +1,629 @@
 basePath: /
+definitions:
+  models.Gender:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.Nationality:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.PatchGender:
+    properties:
+      name:
+        type: string
+    type: object
+  models.PatchNationality:
+    properties:
+      name:
+        type: string
+    type: object
+  models.Person:
+    properties:
+      age:
+        type: integer
+      gender:
+        $ref: '#/definitions/models.Gender'
+      id:
+        type: integer
+      name:
+        type: string
+      nationality:
+        $ref: '#/definitions/models.Nationality'
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
+  models.PersonPatch:
+    properties:
+      age:
+        type: integer
+      gender_id:
+        type: integer
+      name:
+        type: string
+      nationality_id:
+        type: integer
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
   description: API for enriching names
   title: Name Enricher API
   version: "1.0"
-paths: {}
+paths:
+  /genders:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of genders with optional filtering
+      parameters:
+      - description: Gender ID
+        in: query
+        name: id
+        type: integer
+      - description: Gender name
+        in: query
+        name: name
+        type: string
+      - description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved gender list
+          schema:
+            items:
+              $ref: '#/definitions/models.Gender'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List genders
+      tags:
+      - genders
+    post:
+      consumes:
+      - application/json
+      description: Create a new gender entry in the database
+      parameters:
+      - description: Gender object with name field
+        in: body
+        name: gender
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created gender
+          schema:
+            $ref: '#/definitions/models.Gender'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new gender
+      tags:
+      - genders
+  /genders/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a gender by its ID
+      parameters:
+      - description: Gender ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted gender
+          schema:
+            $ref: '#/definitions/models.Gender'
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a gender
+      tags:
+      - genders
+    get:
+      consumes:
+      - application/json
+      description: Get a single gender by its ID
+      parameters:
+      - description: Gender ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved gender
+          schema:
+            $ref: '#/definitions/models.Gender'
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Gender not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a gender by ID
+      tags:
+      - genders
+    put:
+      consumes:
+      - application/json
+      description: Update an existing gender by ID
+      parameters:
+      - description: Gender ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Gender update data
+        in: body
+        name: gender
+        required: true
+        schema:
+          $ref: '#/definitions/models.PatchGender'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated gender
+          schema:
+            $ref: '#/definitions/models.Gender'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a gender
+      tags:
+      - genders
+  /nationalities:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of nationalities with optional filtering
+      parameters:
+      - description: Nationality ID
+        in: query
+        name: id
+        type: integer
+      - description: Nationality name
+        in: query
+        name: name
+        type: string
+      - description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved nationality list
+          schema:
+            items:
+              $ref: '#/definitions/models.Nationality'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List nationalities
+      tags:
+      - nationalities
+    post:
+      consumes:
+      - application/json
+      description: Create a new nationality entry in the database
+      parameters:
+      - description: Nationality object with name field
+        in: body
+        name: nationality
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created nationality
+          schema:
+            $ref: '#/definitions/models.Nationality'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new nationality
+      tags:
+      - nationalities
+  /nationalities/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a nationality by its ID
+      parameters:
+      - description: Nationality ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted nationality
+          schema:
+            $ref: '#/definitions/models.Nationality'
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a nationality
+      tags:
+      - nationalities
+    get:
+      consumes:
+      - application/json
+      description: Get a single nationality by its ID
+      parameters:
+      - description: Nationality ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved nationality
+          schema:
+            $ref: '#/definitions/models.Nationality'
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Nationality not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a nationality by ID
+      tags:
+      - nationalities
+    put:
+      consumes:
+      - application/json
+      description: Update an existing nationality by ID
+      parameters:
+      - description: Nationality ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Nationality update data
+        in: body
+        name: nationality
+        required: true
+        schema:
+          $ref: '#/definitions/models.PatchNationality'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated nationality
+          schema:
+            $ref: '#/definitions/models.Nationality'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a nationality
+      tags:
+      - nationalities
+  /persons:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of persons with optional filtering
+      parameters:
+      - description: Person ID
+        in: query
+        name: id
+        type: integer
+      - description: Person name
+        in: query
+        name: name
+        type: string
+      - description: Person surname
+        in: query
+        name: surname
+        type: string
+      - description: Person patronymic
+        in: query
+        name: patronymic
+        type: string
+      - description: Minimum age
+        in: query
+        name: age_from
+        type: integer
+      - description: Maximum age
+        in: query
+        name: age_to
+        type: integer
+      - description: Gender ID
+        in: query
+        name: gender_id
+        type: integer
+      - description: Nationality ID
+        in: query
+        name: nationality_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved person list
+          schema:
+            items:
+              $ref: '#/definitions/models.Person'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List persons
+      tags:
+      - persons
+    post:
+      consumes:
+      - application/json
+      description: Create a new person with automatic enrichment of age, gender, and
+        nationality
+      parameters:
+      - description: Person data (name is required for enrichment)
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/models.Person'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Successfully created person
+          schema:
+            $ref: '#/definitions/models.Person'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new person
+      tags:
+      - persons
+  /persons/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a person by their ID
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully deleted person
+          schema:
+            $ref: '#/definitions/models.Person'
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a person
+      tags:
+      - persons
+    get:
+      consumes:
+      - application/json
+      description: Get a single person by their ID
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved person
+          schema:
+            $ref: '#/definitions/models.Person'
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Person not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a person by ID
+      tags:
+      - persons
+    put:
+      consumes:
+      - application/json
+      description: Update an existing person by ID
+      parameters:
+      - description: Person ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Person update data
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/models.PersonPatch'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully updated person
+          schema:
+            $ref: '#/definitions/models.Person'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update a person
+      tags:
+      - persons
 swagger: "2.0"

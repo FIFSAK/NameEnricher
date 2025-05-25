@@ -52,6 +52,12 @@ WHERE 1=1`
 
 	paramCounter := 1
 
+	if filter.ID > 0 {
+		conditions = append(conditions, fmt.Sprintf("p.id = $%d", paramCounter))
+		args = append(args, filter.ID)
+		paramCounter++
+	}
+
 	if filter.Name != "" {
 		conditions = append(conditions, fmt.Sprintf("p.name ILIKE $%d", paramCounter))
 		args = append(args, "%"+filter.Name+"%")
