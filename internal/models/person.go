@@ -3,17 +3,18 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
 type Person struct {
-	ID            uint   `json:"id"`
-	Name          string `json:"name"`
-	Surname       string `json:"surname"`
-	Patronymic    string `json:"patronymic,omitempty"`
-	Age           int    `json:"age"`
-	GenderID      int    `json:"gender_id"`
-	NationalityID int    `json:"nationality_id"`
+	ID          uint        `json:"id"`
+	Name        string      `json:"name"`
+	Surname     string      `json:"surname"`
+	Patronymic  string      `json:"patronymic,omitempty"`
+	Age         int         `json:"age"`
+	Gender      Gender      `json:"gender"`
+	Nationality Nationality `json:"nationality"`
 }
 
 type PersonFilter struct {
@@ -39,44 +40,50 @@ type PersonPatch struct {
 func GetPersons(ctx context.Context, db *sql.DB, filter PersonFilter) ([]Person, error) {
 	var persons []Person
 
-	query := "SELECT id, name, surname, patronymic, age, gender_id, nationality_id FROM persons WHERE 1=1"
+	query := `SELECT p.id, p.name, p.surname, p.patronymic, p.age, p.gender_id, g.name as gender_name,
+p.nationality_id, n.name as nationality_name
+FROM persons p
+LEFT JOIN nationalities n ON n.id = p.nationality_id
+LEFT JOIN genders g ON g.id = p.gender_id
+WHERE 1=1`
+
 	var args []interface{}
 	var conditions []string
 
 	paramCounter := 1
 
 	if filter.Name != "" {
-		conditions = append(conditions, fmt.Sprintf("name ILIKE $%d", paramCounter))
+		conditions = append(conditions, fmt.Sprintf("p.name ILIKE $%d", paramCounter))
 		args = append(args, "%"+filter.Name+"%")
 		paramCounter++
 	}
 
 	if filter.Surname != "" {
-		conditions = append(conditions, fmt.Sprintf("surname ILIKE $%d", paramCounter))
+		conditions = append(conditions, fmt.Sprintf("p.surname ILIKE $%d", paramCounter))
 		args = append(args, "%"+filter.Surname+"%")
 		paramCounter++
 	}
 
 	if filter.AgeTo > 0 {
-		conditions = append(conditions, fmt.Sprintf("age <= $%d", paramCounter))
+		conditions = append(conditions, fmt.Sprintf("p.age <= $%d", paramCounter))
 		args = append(args, filter.AgeTo)
 		paramCounter++
 	}
 
 	if filter.AgeFrom > 0 {
-		conditions = append(conditions, fmt.Sprintf("age >= $%d", paramCounter))
+		conditions = append(conditions, fmt.Sprintf("p.age >= $%d", paramCounter))
 		args = append(args, filter.AgeFrom)
 		paramCounter++
 	}
 
 	if filter.GenderID > 0 {
-		conditions = append(conditions, fmt.Sprintf("gender_id = $%d", paramCounter))
+		conditions = append(conditions, fmt.Sprintf("p.gender_id = $%d", paramCounter))
 		args = append(args, filter.GenderID)
 		paramCounter++
 	}
 
 	if filter.NationalityID > 0 {
-		conditions = append(conditions, fmt.Sprintf("nationality_id = $%d", paramCounter))
+		conditions = append(conditions, fmt.Sprintf("p.nationality_id = $%d", paramCounter))
 		args = append(args, filter.NationalityID)
 		paramCounter++
 	}
@@ -84,8 +91,6 @@ func GetPersons(ctx context.Context, db *sql.DB, filter PersonFilter) ([]Person,
 	for _, condition := range conditions {
 		query += " AND " + condition
 	}
-
-	query += " ORDER BY id"
 
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -101,8 +106,10 @@ func GetPersons(ctx context.Context, db *sql.DB, filter PersonFilter) ([]Person,
 			&person.Surname,
 			&person.Patronymic,
 			&person.Age,
-			&person.GenderID,
-			&person.NationalityID,
+			&person.Gender.ID,
+			&person.Gender.Name,
+			&person.Nationality.ID,
+			&person.Nationality.Name,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row: %w", err)
@@ -119,7 +126,8 @@ func GetPersons(ctx context.Context, db *sql.DB, filter PersonFilter) ([]Person,
 
 func DeletePersonByID(ctx context.Context, id uint, db *sql.DB) (Person, error) {
 	var deletedPerson Person
-	err := db.QueryRowContext(ctx, "DELETE FROM persons WHERE id = $1", id).Scan(&deletedPerson)
+	query := "DELETE FROM persons WHERE id = $1 RETURNING id, name, surname"
+	err := db.QueryRowContext(ctx, query, id).Scan(&deletedPerson.ID, &deletedPerson.Name, &deletedPerson.Surname)
 	if err != nil {
 		return Person{}, fmt.Errorf("error deleting person: %w", err)
 	}
@@ -136,23 +144,21 @@ func UpdatePerson(ctx context.Context, id uint, patch PersonPatch, db *sql.DB) (
 		&currentPerson.Surname,
 		&currentPerson.Patronymic,
 		&currentPerson.Age,
-		&currentPerson.GenderID,
-		&currentPerson.NationalityID,
+		&currentPerson.Gender.ID,
+		&currentPerson.Nationality.ID,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return Person{}, fmt.Errorf("record with id=%d not found", id)
 		}
 		return Person{}, fmt.Errorf("error while receiving data: %w", err)
 	}
 
-	// Формируем SQL запрос и аргументы динамически
 	query := "UPDATE persons SET"
 	var args []interface{}
 	paramCounter := 1
 	needUpdate := false
 
-	// Проверяем каждое поле на необходимость обновления
 	if patch.Name != nil {
 		query += fmt.Sprintf(" name = $%d,", paramCounter)
 		args = append(args, *patch.Name)
@@ -210,12 +216,12 @@ func UpdatePerson(ctx context.Context, id uint, patch PersonPatch, db *sql.DB) (
 		&updatedPerson.Surname,
 		&updatedPerson.Patronymic,
 		&updatedPerson.Age,
-		&updatedPerson.GenderID,
-		&updatedPerson.NationalityID,
+		&updatedPerson.Gender.ID,
+		&updatedPerson.Nationality.ID,
 	)
 
 	if err != nil {
-		return Person{}, fmt.Errorf("ошибка при обновлении: %w", err)
+		return Person{}, fmt.Errorf("error during update: %w", err)
 	}
 
 	return updatedPerson, nil
@@ -229,9 +235,17 @@ func CreatePerson(ctx context.Context, person Person, db *sql.DB) (Person, error
 		person.Surname,
 		person.Patronymic,
 		person.Age,
-		person.GenderID,
-		person.NationalityID,
-	).Scan(createdPerson)
+		person.Gender.ID,
+		person.Nationality.ID,
+	).Scan(
+		&createdPerson.ID,
+		&createdPerson.Name,
+		&createdPerson.Surname,
+		&createdPerson.Patronymic,
+		&createdPerson.Age,
+		&createdPerson.Gender.ID,
+		&createdPerson.Nationality.ID,
+	)
 	if err != nil {
 		return Person{}, fmt.Errorf("error inserting person: %w", err)
 	}
