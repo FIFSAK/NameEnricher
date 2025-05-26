@@ -21,3 +21,9 @@ CREATE TABLE IF NOT EXISTS persons
     nationality_id INT  NOT NULL REFERENCES nationalities (id)
 );
 
+CREATE INDEX idx_persons_gender_id ON persons (gender_id);
+CREATE INDEX idx_persons_nationality_id ON persons (nationality_id);
+
+CREATE INDEX idx_persons_name ON persons (name);
+CREATE INDEX idx_persons_surname ON persons (surname);
+CREATE INDEX idx_persons_age ON persons (age);

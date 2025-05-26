@@ -26,7 +26,7 @@ import (
 // @Param Page query integer false "Page"
 // @Param Limit query integer false "LIMIT"
 // @Success 200 {array} models.Person "Successfully retrieved person list"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Failure 500 {object} map[string]string "Internal server error - Database connection issues or query problems"
 // @Router /persons [get]
 func GetPersonsHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -113,8 +113,8 @@ func GetPersonsHandler(db *sql.DB) gin.HandlerFunc {
 // @Produce json
 // @Param person body models.PersonCreateRequest true "Person data (name is required for enrichment)"
 // @Success 201 {object} models.Person "Successfully created person"
-// @Failure 400 {object} map[string]string "Invalid request"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Failure 400 {object} map[string]string "Invalid request - Missing required fields or invalid data format"
+// @Failure 500 {object} map[string]string "Internal server error - External API failures, database errors, or enrichment failures"
 // @Router /persons [post]
 func CreatePersonHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -226,9 +226,9 @@ func CreatePersonHandler(db *sql.DB) gin.HandlerFunc {
 // @Param id path integer true "Person ID"
 // @Param person body models.PersonPatch true "Complete person data"
 // @Success 200 {object} models.Person "Successfully updated person"
-// @Failure 400 {object} map[string]string "Invalid request"
-// @Failure 404 {object} map[string]string "Person not found"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Failure 400 {object} map[string]string "Invalid request - Bad ID format, missing required fields, or invalid JSON format"
+// @Failure 404 {object} map[string]string "Person not found - The specified ID does not exist"
+// @Failure 500 {object} map[string]string "Internal server error - Database errors or foreign key violations"
 // @Router /persons/{id} [put]
 func UpdatePersonHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -290,9 +290,9 @@ func UpdatePersonHandler(db *sql.DB) gin.HandlerFunc {
 // @Param id path integer true "Person ID"
 // @Param person body models.PersonPatch true "Partial person update data"
 // @Success 200 {object} models.Person "Successfully patched person"
-// @Failure 400 {object} map[string]string "Invalid request"
-// @Failure 404 {object} map[string]string "Person not found"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Failure 400 {object} map[string]string "Invalid request - Bad ID format or invalid JSON structure"
+// @Failure 404 {object} map[string]string "Person not found - The specified ID does not exist"
+// @Failure 500 {object} map[string]string "Internal server error - Database errors or foreign key constraint violations"
 // @Router /persons/{id} [patch]
 func PatchPersonHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -335,8 +335,9 @@ func PatchPersonHandler(db *sql.DB) gin.HandlerFunc {
 // @Produce json
 // @Param id path integer true "Person ID"
 // @Success 200 {object} models.Person "Successfully deleted person"
-// @Failure 400 {object} map[string]string "Invalid ID format"
-// @Failure 500 {object} map[string]string "Internal server error"
+// @Failure 400 {object} map[string]string "Invalid ID format - The provided ID is not a valid integer"
+// @Failure 404 {object} map[string]string "Person not found - The specified ID does not exist"
+// @Failure 500 {object} map[string]string "Internal server error - Database connection issues or constraint violations"
 // @Router /persons/{id} [delete]
 func DeletePersonHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
