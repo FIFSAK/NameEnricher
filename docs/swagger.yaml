@@ -422,7 +422,8 @@ paths:
               $ref: '#/definitions/models.Person'
             type: array
         "500":
-          description: Internal server error
+          description: Internal server error - Database connection issues or query
+            problems
           schema:
             additionalProperties:
               type: string
@@ -450,13 +451,14 @@ paths:
           schema:
             $ref: '#/definitions/models.Person'
         "400":
-          description: Invalid request
+          description: Invalid request - Missing required fields or invalid data format
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal server error
+          description: Internal server error - External API failures, database errors,
+            or enrichment failures
           schema:
             additionalProperties:
               type: string
@@ -483,13 +485,20 @@ paths:
           schema:
             $ref: '#/definitions/models.Person'
         "400":
-          description: Invalid ID format
+          description: Invalid ID format - The provided ID is not a valid integer
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Person not found - The specified ID does not exist
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal server error
+          description: Internal server error - Database connection issues or constraint
+            violations
           schema:
             additionalProperties:
               type: string
@@ -521,19 +530,20 @@ paths:
           schema:
             $ref: '#/definitions/models.Person'
         "400":
-          description: Invalid request
+          description: Invalid request - Bad ID format or invalid JSON structure
           schema:
             additionalProperties:
               type: string
             type: object
         "404":
-          description: Person not found
+          description: Person not found - The specified ID does not exist
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal server error
+          description: Internal server error - Database errors or foreign key constraint
+            violations
           schema:
             additionalProperties:
               type: string
@@ -565,19 +575,20 @@ paths:
           schema:
             $ref: '#/definitions/models.Person'
         "400":
-          description: Invalid request
+          description: Invalid request - Bad ID format, missing required fields, or
+            invalid JSON format
           schema:
             additionalProperties:
               type: string
             type: object
         "404":
-          description: Person not found
+          description: Person not found - The specified ID does not exist
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal server error
+          description: Internal server error - Database errors or foreign key violations
           schema:
             additionalProperties:
               type: string

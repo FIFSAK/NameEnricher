@@ -531,7 +531,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal server error - Database connection issues or query problems",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -572,7 +572,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request - Missing required fields or invalid data format",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -581,7 +581,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal server error - External API failures, database errors, or enrichment failures",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -631,7 +631,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request - Bad ID format, missing required fields, or invalid JSON format",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -640,7 +640,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Person not found",
+                        "description": "Person not found - The specified ID does not exist",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -649,7 +649,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal server error - Database errors or foreign key violations",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -688,7 +688,16 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid ID format",
+                        "description": "Invalid ID format - The provided ID is not a valid integer",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Person not found - The specified ID does not exist",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -697,7 +706,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal server error - Database connection issues or constraint violations",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -745,7 +754,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request - Bad ID format or invalid JSON structure",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -754,7 +763,7 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "Person not found",
+                        "description": "Person not found - The specified ID does not exist",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -763,7 +772,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal server error - Database errors or foreign key constraint violations",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
