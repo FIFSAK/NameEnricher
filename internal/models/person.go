@@ -21,11 +21,12 @@ type PersonFilter struct {
 	ID            uint
 	Name          string
 	Surname       string
-	Patronymic    string
 	AgeFrom       int
 	AgeTo         int
 	GenderID      int
 	NationalityID int
+	Page          int
+	Limit         int
 }
 
 type PersonPatch struct {
@@ -35,6 +36,13 @@ type PersonPatch struct {
 	Age           *int    `json:"age,omitempty"`
 	GenderID      *int    `json:"gender_id,omitempty"`
 	NationalityID *int    `json:"nationality_id,omitempty"`
+}
+
+// PersonCreateRequest need for swagger
+type PersonCreateRequest struct {
+	Name       string `json:"name"`
+	Surname    string `json:"surname"`
+	Patronymic string `json:"patronymic,omitempty"`
 }
 
 func GetPersons(ctx context.Context, db *sql.DB, filter PersonFilter) ([]Person, error) {
@@ -97,6 +105,13 @@ WHERE 1=1`
 	for _, condition := range conditions {
 		query += " AND " + condition
 	}
+	if filter.Page > 0 && filter.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", paramCounter)
+		args = append(args, filter.Limit)
+		paramCounter++
+		query += fmt.Sprintf(" OFFSET $%d", paramCounter)
+		args = append(args, (filter.Page-1)*filter.Limit)
+	}
 
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -130,14 +145,14 @@ WHERE 1=1`
 	return persons, nil
 }
 
-func DeletePersonByID(ctx context.Context, id uint, db *sql.DB) (Person, error) {
-	var deletedPerson Person
-	query := "DELETE FROM persons WHERE id = $1 RETURNING id, name, surname"
-	err := db.QueryRowContext(ctx, query, id).Scan(&deletedPerson.ID, &deletedPerson.Name, &deletedPerson.Surname)
+func DeletePersonByID(ctx context.Context, id uint, db *sql.DB) (int, error) {
+	var deletedId int
+	query := "DELETE FROM persons WHERE id = $1 RETURNING id"
+	err := db.QueryRowContext(ctx, query, id).Scan(&deletedId)
 	if err != nil {
-		return Person{}, fmt.Errorf("error deleting person: %w", err)
+		return 0, fmt.Errorf("error deleting person: %w", err)
 	}
-	return deletedPerson, nil
+	return deletedId, nil
 }
 
 func UpdatePerson(ctx context.Context, id uint, patch PersonPatch, db *sql.DB) (Person, error) {
@@ -229,6 +244,15 @@ func UpdatePerson(ctx context.Context, id uint, patch PersonPatch, db *sql.DB) (
 	if err != nil {
 		return Person{}, fmt.Errorf("error during update: %w", err)
 	}
+	fullDataPerson, err := GetPersons(ctx, db, PersonFilter{ID: updatedPerson.ID})
+
+	if err != nil {
+		return Person{}, fmt.Errorf("error during update: %w", err)
+	}
+	if len(fullDataPerson) == 0 {
+		return Person{}, fmt.Errorf("updated person with id=%d not found", updatedPerson.ID)
+	}
+	updatedPerson = fullDataPerson[0]
 
 	return updatedPerson, nil
 }
@@ -255,5 +279,76 @@ func CreatePerson(ctx context.Context, person Person, db *sql.DB) (Person, error
 	if err != nil {
 		return Person{}, fmt.Errorf("error inserting person: %w", err)
 	}
+
+	fullDataPerson, err := GetPersons(ctx, db, PersonFilter{ID: createdPerson.ID})
+
+	if err != nil {
+		return Person{}, fmt.Errorf("error during update: %w", err)
+	}
+	if len(fullDataPerson) == 0 {
+		return Person{}, fmt.Errorf("updated person with id=%d not found", createdPerson.ID)
+	}
+	createdPerson = fullDataPerson[0]
+
 	return createdPerson, nil
+}
+
+// ReplacePerson replaces all data for an existing person in the database
+func ReplacePerson(ctx context.Context, person Person, db *sql.DB) (Person, error) {
+	// First check if the person exists
+	var exists bool
+	err := db.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM persons WHERE id = $1)", person.ID).Scan(&exists)
+	if err != nil {
+		return Person{}, fmt.Errorf("error checking if person exists: %w", err)
+	}
+
+	if !exists {
+		return Person{}, fmt.Errorf("person with id=%d not found", person.ID)
+	}
+
+	// Replace the person's data
+	query := `UPDATE persons SET 
+		name = $1, 
+		surname = $2, 
+		patronymic = $3, 
+		age = $4, 
+		gender_id = $5, 
+		nationality_id = $6 
+	WHERE id = $7 
+	RETURNING id, name, surname, patronymic, age, gender_id, nationality_id`
+
+	var updatedPerson Person
+	err = db.QueryRowContext(ctx, query,
+		person.Name,
+		person.Surname,
+		person.Patronymic,
+		person.Age,
+		person.Gender.ID,
+		person.Nationality.ID,
+		person.ID,
+	).Scan(
+		&updatedPerson.ID,
+		&updatedPerson.Name,
+		&updatedPerson.Surname,
+		&updatedPerson.Patronymic,
+		&updatedPerson.Age,
+		&updatedPerson.Gender.ID,
+		&updatedPerson.Nationality.ID,
+	)
+
+	if err != nil {
+		return Person{}, fmt.Errorf("error replacing person: %w", err)
+	}
+
+	fullDataPerson, err := GetPersons(ctx, db, PersonFilter{ID: updatedPerson.ID})
+
+	if err != nil {
+		return Person{}, fmt.Errorf("error during update: %w", err)
+	}
+	if len(fullDataPerson) == 0 {
+		return Person{}, fmt.Errorf("updated person with id=%d not found", updatedPerson.ID)
+	}
+	updatedPerson = fullDataPerson[0]
+
+	return updatedPerson, nil
 }

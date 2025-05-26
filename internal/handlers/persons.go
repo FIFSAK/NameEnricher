@@ -19,11 +19,12 @@ import (
 // @Param id query integer false "Person ID"
 // @Param name query string false "Person name"
 // @Param surname query string false "Person surname"
-// @Param patronymic query string false "Person patronymic"
 // @Param age_from query integer false "Minimum age"
 // @Param age_to query integer false "Maximum age"
 // @Param gender_id query integer false "Gender ID"
 // @Param nationality_id query integer false "Nationality ID"
+// @Param Page query integer false "Page"
+// @Param Limit query integer false "LIMIT"
 // @Success 200 {array} models.Person "Successfully retrieved person list"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /persons [get]
@@ -33,7 +34,7 @@ func GetPersonsHandler(db *sql.DB) gin.HandlerFunc {
 		filter := models.PersonFilter{}
 
 		if idStr := c.Query("id"); idStr != "" {
-			if idVal, err := strconv.ParseUint(idStr, 10, 32); err == nil && idVal > 0 {
+			if idVal, err := strconv.ParseUint(idStr, 10, 64); err == nil && idVal > 0 {
 				filter.ID = uint(idVal)
 				logger.Log.Debugf("Filtering by ID: %d", idVal)
 			}
@@ -47,11 +48,6 @@ func GetPersonsHandler(db *sql.DB) gin.HandlerFunc {
 		if surname := c.Query("surname"); surname != "" {
 			filter.Surname = surname
 			logger.Log.Debugf("Filtering by surname: %s", surname)
-		}
-
-		if patronymic := c.Query("patronymic"); patronymic != "" {
-			filter.Patronymic = patronymic
-			logger.Log.Debugf("Filtering by patronymic: %s", patronymic)
 		}
 
 		if ageFromStr := c.Query("age_from"); ageFromStr != "" {
@@ -82,6 +78,20 @@ func GetPersonsHandler(db *sql.DB) gin.HandlerFunc {
 			}
 		}
 
+		if pageStr := c.Query("Page"); pageStr != "" {
+			if pageVal, err := strconv.Atoi(pageStr); err == nil && pageVal > 0 {
+				filter.Page = pageVal
+				logger.Log.Debugf("Filtering by page: %d", pageVal)
+			}
+		}
+
+		if limitStr := c.Query("Limit"); limitStr != "" {
+			if limitVal, err := strconv.Atoi(limitStr); err == nil && limitVal > 0 {
+				filter.Limit = limitVal
+				logger.Log.Debugf("Filtering by limit: %d", limitVal)
+			}
+		}
+
 		logger.Log.Debugf("Executing GetPersons with filter: %+v", filter)
 		persons, err := models.GetPersons(c.Request.Context(), db, filter)
 		if err != nil {
@@ -101,7 +111,7 @@ func GetPersonsHandler(db *sql.DB) gin.HandlerFunc {
 // @Tags persons
 // @Accept json
 // @Produce json
-// @Param person body models.Person true "Person data (name is required for enrichment)"
+// @Param person body models.PersonCreateRequest true "Person data (name is required for enrichment)"
 // @Success 201 {object} models.Person "Successfully created person"
 // @Failure 400 {object} map[string]string "Invalid request"
 // @Failure 500 {object} map[string]string "Internal server error"
@@ -208,46 +218,111 @@ func CreatePersonHandler(db *sql.DB) gin.HandlerFunc {
 }
 
 // UpdatePersonHandler godoc
-// @Summary Update a person
-// @Description Update an existing person by ID
+// @Summary Update a person completely
+// @Description Replace an existing person's data by ID
 // @Tags persons
 // @Accept json
 // @Produce json
 // @Param id path integer true "Person ID"
-// @Param person body models.PersonPatch true "Person update data"
+// @Param person body models.PersonPatch true "Complete person data"
 // @Success 200 {object} models.Person "Successfully updated person"
 // @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 404 {object} map[string]string "Person not found"
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /persons/{id} [put]
 func UpdatePersonHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
-		logger.Log.Infof("Processing update person request for ID: %s", idStr)
-
-		id, err := strconv.ParseUint(idStr, 10, 32)
+		logger.Log.Infof("Processing PUT update person request for ID: %s", idStr)
+		logger.Log.Infof(idStr)
+		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			logger.Log.Errorf("Invalid ID format: %s - %v", idStr, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error Wrong ID format": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong ID format: " + err.Error()})
+			return
+		}
+
+		var requestData struct {
+			ID            uint   `json:"id"`
+			Name          string `json:"name"`
+			Surname       string `json:"surname"`
+			Patronymic    string `json:"patronymic,omitempty"`
+			Age           int    `json:"age"`
+			GenderID      int    `json:"gender_id,omitempty"`
+			NationalityID int    `json:"nationality_id,omitempty"`
+		}
+
+		if err := c.ShouldBindJSON(&requestData); err != nil {
+			logger.Log.Errorf("Failed to bind JSON for person update: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+			return
+		}
+
+		// Create a person object with the appropriate structure
+		var person models.Person
+		person.ID = uint(id)
+		person.Name = requestData.Name
+		person.Surname = requestData.Surname
+		person.Patronymic = requestData.Patronymic
+		person.Age = requestData.Age
+		person.Gender.ID = requestData.GenderID
+		person.Nationality.ID = requestData.NationalityID
+
+		// Continue with validation and update
+		updatedPerson, err := models.ReplacePerson(c.Request.Context(), person, db)
+		if err != nil {
+			logger.Log.Errorf("Failed to update person ID %d: %v", id, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error during update: " + err.Error()})
+			return
+		}
+
+		logger.Log.Infof("Successfully updated person with ID %d using PUT", id)
+		c.JSON(http.StatusOK, updatedPerson)
+	}
+}
+
+// PatchPersonHandler godoc
+// @Summary Partially update a person
+// @Description Update specific fields of an existing person by ID
+// @Tags persons
+// @Accept json
+// @Produce json
+// @Param id path integer true "Person ID"
+// @Param person body models.PersonPatch true "Partial person update data"
+// @Success 200 {object} models.Person "Successfully patched person"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 404 {object} map[string]string "Person not found"
+// @Failure 500 {object} map[string]string "Internal server error"
+// @Router /persons/{id} [patch]
+func PatchPersonHandler(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		logger.Log.Infof("Processing PATCH update person request for ID: %s", idStr)
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			logger.Log.Errorf("Invalid ID format: %s - %v", idStr, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong ID format: " + err.Error()})
 			return
 		}
 
 		var patch models.PersonPatch
 		if err := c.ShouldBindJSON(&patch); err != nil {
-			logger.Log.Errorf("Failed to bind JSON for person update: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error during handling request": err.Error()})
+			logger.Log.Errorf("Failed to bind JSON for person patch: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
 			return
 		}
 
-		logger.Log.Debugf("Updating person ID %d with patch: %+v", id, patch)
+		logger.Log.Debugf("Patching person ID %d with: %+v", id, patch)
 
 		updatedPerson, err := models.UpdatePerson(c.Request.Context(), uint(id), patch, db)
 		if err != nil {
-			logger.Log.Errorf("Failed to update person ID %d: %v", id, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error during update": err.Error()})
+			logger.Log.Errorf("Failed to patch person ID %d: %v", id, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error during patch: " + err.Error()})
 			return
 		}
 
-		logger.Log.Infof("Successfully updated person with ID %d", id)
+		logger.Log.Infof("Successfully patched person with ID %d", id)
 		c.JSON(http.StatusOK, updatedPerson)
 	}
 }
@@ -268,7 +343,7 @@ func DeletePersonHandler(db *sql.DB) gin.HandlerFunc {
 		idStr := c.Param("id")
 		logger.Log.Infof("Processing delete person request for ID: %s", idStr)
 
-		id, err := strconv.ParseUint(idStr, 10, 32)
+		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			logger.Log.Errorf("Invalid ID format: %s - %v", idStr, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error Wrong ID format": err.Error()})
@@ -276,7 +351,7 @@ func DeletePersonHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		logger.Log.Debugf("Deleting person with ID: %d", id)
-		deletedPerson, err := models.DeletePersonByID(c.Request.Context(), uint(id), db)
+		deletedId, err := models.DeletePersonByID(c.Request.Context(), uint(id), db)
 		if err != nil {
 			logger.Log.Errorf("Failed to delete person ID %d: %v", id, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error during delete": err.Error()})
@@ -284,9 +359,6 @@ func DeletePersonHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		logger.Log.Infof("Successfully deleted person with ID %d", id)
-		c.JSON(http.StatusOK, deletedPerson)
+		c.JSON(http.StatusOK, deletedId)
 	}
 }
-
-// todo: fix swagger example in post
-// todo: delete neccessary filters from swagger

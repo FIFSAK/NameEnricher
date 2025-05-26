@@ -598,12 +598,6 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "string",
-                        "description": "Person patronymic",
-                        "name": "patronymic",
-                        "in": "query"
-                    },
-                    {
                         "type": "integer",
                         "description": "Minimum age",
                         "name": "age_from",
@@ -625,6 +619,18 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Nationality ID",
                         "name": "nationality_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "Page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "LIMIT",
+                        "name": "Limit",
                         "in": "query"
                     }
                 ],
@@ -668,7 +674,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Person"
+                            "$ref": "#/definitions/models.PersonCreateRequest"
                         }
                     }
                 ],
@@ -701,65 +707,8 @@ const docTemplate = `{
             }
         },
         "/persons/{id}": {
-            "get": {
-                "description": "Get a single person by their ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "persons"
-                ],
-                "summary": "Get a person by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Person ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully retrieved person",
-                        "schema": {
-                            "$ref": "#/definitions/models.Person"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Person not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
             "put": {
-                "description": "Update an existing person by ID",
+                "description": "Replace an existing person's data by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -769,7 +718,7 @@ const docTemplate = `{
                 "tags": [
                     "persons"
                 ],
-                "summary": "Update a person",
+                "summary": "Update a person completely",
                 "parameters": [
                     {
                         "type": "integer",
@@ -779,7 +728,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Person update data",
+                        "description": "Complete person data",
                         "name": "person",
                         "in": "body",
                         "required": true,
@@ -797,6 +746,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Person not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -845,6 +803,72 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid ID format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Update specific fields of an existing person by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "persons"
+                ],
+                "summary": "Partially update a person",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Person ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Partial person update data",
+                        "name": "person",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PersonPatch"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully patched person",
+                        "schema": {
+                            "$ref": "#/definitions/models.Person"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Person not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -921,6 +945,20 @@ const docTemplate = `{
                 },
                 "nationality": {
                     "$ref": "#/definitions/models.Nationality"
+                },
+                "patronymic": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.PersonCreateRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
                 },
                 "patronymic": {
                     "type": "string"

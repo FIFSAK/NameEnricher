@@ -63,7 +63,8 @@ func main() {
 	personsRouter := router.Group("/persons")
 	personsRouter.GET("", handlers.GetPersonsHandler(db))
 	personsRouter.POST("", handlers.CreatePersonHandler(db))
-	personsRouter.PATCH("/:id", handlers.UpdatePersonHandler(db))
+	personsRouter.PUT("/:id", handlers.UpdatePersonHandler(db))
+	personsRouter.PATCH("/:id", handlers.PatchPersonHandler(db))
 	personsRouter.DELETE("/:id", handlers.DeletePersonHandler(db))
 
 	port := os.Getenv("PORT")

@@ -428,9 +428,137 @@ func TestDeletePersonByID(t *testing.T) {
 			WithArgs(id).
 			WillReturnError(sql.ErrNoRows)
 
-		_, err := DeletePersonByID(ctx, id, db)
+		_, err = DeletePersonByID(ctx, id, db)
 		if err == nil {
 			t.Errorf("Expected error, got nil")
+		}
+	})
+}
+
+func TestReplacePerson(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Error creating mock db: %v", err)
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+
+	t.Run("SuccessfulReplace", func(t *testing.T) {
+		person := Person{
+			ID:         1,
+			Name:       "Updated",
+			Surname:    "Person",
+			Patronymic: "Test",
+			Age:        40,
+			Gender: Gender{
+				ID: 2,
+			},
+			Nationality: Nationality{
+				ID: 3,
+			},
+		}
+
+		// Mock exists check
+		existsRow := sqlmock.NewRows([]string{"exists"}).AddRow(true)
+		mock.ExpectQuery("SELECT EXISTS").WithArgs(person.ID).WillReturnRows(existsRow)
+
+		// Mock update query
+		updateRows := sqlmock.NewRows([]string{
+			"id", "name", "surname", "patronymic", "age", "gender_id", "nationality_id",
+		}).AddRow(
+			person.ID, person.Name, person.Surname, person.Patronymic,
+			person.Age, person.Gender.ID, person.Nationality.ID,
+		)
+
+		mock.ExpectQuery("UPDATE persons SET").
+			WithArgs(
+				person.Name, person.Surname, person.Patronymic,
+				person.Age, person.Gender.ID, person.Nationality.ID, person.ID,
+			).
+			WillReturnRows(updateRows)
+
+		result, err := ReplacePerson(ctx, person, db)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		if result.ID != person.ID || result.Name != person.Name ||
+			result.Age != person.Age || result.Gender.ID != person.Gender.ID {
+			t.Errorf("Results not matching - received: %v, expected: %v", result, person)
+		}
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unfulfilled expectations: %v", err)
+		}
+	})
+
+	t.Run("PersonNotFound", func(t *testing.T) {
+		person := Person{
+			ID:   999,
+			Name: "NonExistent",
+		}
+
+		// Mock exists check - person does not exist
+		existsRow := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+		mock.ExpectQuery("SELECT EXISTS").WithArgs(person.ID).WillReturnRows(existsRow)
+
+		_, err := ReplacePerson(ctx, person, db)
+		if err == nil {
+			t.Errorf("Expected error for non-existent person, got nil")
+		}
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unfulfilled expectations: %v", err)
+		}
+	})
+
+	t.Run("ExistsQueryError", func(t *testing.T) {
+		person := Person{
+			ID:   1,
+			Name: "Test",
+		}
+
+		// Mock exists check with error
+		mock.ExpectQuery("SELECT EXISTS").
+			WithArgs(person.ID).
+			WillReturnError(errors.New("database connection error"))
+
+		_, err := ReplacePerson(ctx, person, db)
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unfulfilled expectations: %v", err)
+		}
+	})
+
+	t.Run("UpdateQueryError", func(t *testing.T) {
+		person := Person{
+			ID:   1,
+			Name: "Test",
+		}
+
+		// Mock exists check
+		existsRow := sqlmock.NewRows([]string{"exists"}).AddRow(true)
+		mock.ExpectQuery("SELECT EXISTS").WithArgs(person.ID).WillReturnRows(existsRow)
+
+		// Mock update query with error
+		mock.ExpectQuery("UPDATE persons SET").
+			WithArgs(
+				person.Name, person.Surname, person.Patronymic,
+				person.Age, person.Gender.ID, person.Nationality.ID, person.ID,
+			).
+			WillReturnError(errors.New("update error"))
+
+		_, err := ReplacePerson(ctx, person, db)
+		if err == nil {
+			t.Errorf("Expected error, got nil")
+		}
+
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unfulfilled expectations: %v", err)
 		}
 	})
 }

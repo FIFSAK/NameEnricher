@@ -41,6 +41,15 @@ definitions:
       surname:
         type: string
     type: object
+  models.PersonCreateRequest:
+    properties:
+      name:
+        type: string
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
   models.PersonPatch:
     properties:
       age:
@@ -445,10 +454,6 @@ paths:
         in: query
         name: surname
         type: string
-      - description: Person patronymic
-        in: query
-        name: patronymic
-        type: string
       - description: Minimum age
         in: query
         name: age_from
@@ -464,6 +469,14 @@ paths:
       - description: Nationality ID
         in: query
         name: nationality_id
+        type: integer
+      - description: Page
+        in: query
+        name: Page
+        type: integer
+      - description: LIMIT
+        in: query
+        name: Limit
         type: integer
       produces:
       - application/json
@@ -494,7 +507,7 @@ paths:
         name: person
         required: true
         schema:
-          $ref: '#/definitions/models.Person'
+          $ref: '#/definitions/models.PersonCreateRequest'
       produces:
       - application/json
       responses:
@@ -550,25 +563,31 @@ paths:
       summary: Delete a person
       tags:
       - persons
-    get:
+    patch:
       consumes:
       - application/json
-      description: Get a single person by their ID
+      description: Update specific fields of an existing person by ID
       parameters:
       - description: Person ID
         in: path
         name: id
         required: true
         type: integer
+      - description: Partial person update data
+        in: body
+        name: person
+        required: true
+        schema:
+          $ref: '#/definitions/models.PersonPatch'
       produces:
       - application/json
       responses:
         "200":
-          description: Successfully retrieved person
+          description: Successfully patched person
           schema:
             $ref: '#/definitions/models.Person'
         "400":
-          description: Invalid ID format
+          description: Invalid request
           schema:
             additionalProperties:
               type: string
@@ -585,20 +604,20 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Get a person by ID
+      summary: Partially update a person
       tags:
       - persons
     put:
       consumes:
       - application/json
-      description: Update an existing person by ID
+      description: Replace an existing person's data by ID
       parameters:
       - description: Person ID
         in: path
         name: id
         required: true
         type: integer
-      - description: Person update data
+      - description: Complete person data
         in: body
         name: person
         required: true
@@ -617,13 +636,19 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "404":
+          description: Person not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal server error
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Update a person
+      summary: Update a person completely
       tags:
       - persons
 swagger: "2.0"
