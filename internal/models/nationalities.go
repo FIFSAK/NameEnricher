@@ -13,6 +13,10 @@ type Nationality struct {
 	Name string `json:"name"`
 }
 
+type NationalityCreateRequest struct {
+	Name string `json:"name"`
+}
+
 type NationalityFilter struct {
 	ID    int    `json:"id,omitempty"`
 	Name  string `json:"name,omitempty"`

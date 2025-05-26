@@ -48,16 +48,14 @@ func main() {
 
 	gendersRouter := router.Group("/genders")
 	gendersRouter.GET("", handlers.GetGendersHandler(db))
-	gendersRouter.GET("/:id", handlers.GetGenderByIDHandler(db))
 	gendersRouter.POST("", handlers.CreateGenderHandler(db))
-	gendersRouter.PATCH("/:id", handlers.UpdateGenderHandler(db))
+	gendersRouter.PUT("/:id", handlers.UpdateGenderHandler(db))
 	gendersRouter.DELETE("/:id", handlers.DeleteGenderHandler(db))
 
 	nationalitiesRouter := router.Group("/nationalities")
 	nationalitiesRouter.GET("", handlers.GetNationalitiesHandler(db))
-	nationalitiesRouter.GET("/:id", handlers.GetNationalityByIDHandler(db))
 	nationalitiesRouter.POST("", handlers.CreateNationalityHandler(db))
-	nationalitiesRouter.PATCH("/:id", handlers.UpdateNationalityHandler(db))
+	nationalitiesRouter.PUT("/:id", handlers.UpdateNationalityHandler(db))
 	nationalitiesRouter.DELETE("/:id", handlers.DeleteNationalityHandler(db))
 
 	personsRouter := router.Group("/persons")

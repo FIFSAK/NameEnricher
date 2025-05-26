@@ -68,56 +68,13 @@ func GetNationalitiesHandler(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// GetNationalityByIDHandler godoc
-// @Summary Get a nationality by ID
-// @Description Get a single nationality by its ID
-// @Tags nationalities
-// @Accept json
-// @Produce json
-// @Param id path integer true "Nationality ID"
-// @Success 200 {object} models.Nationality "Successfully retrieved nationality"
-// @Failure 400 {object} map[string]string "Invalid ID format"
-// @Failure 404 {object} map[string]string "Nationality not found"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /nationalities/{id} [get]
-func GetNationalityByIDHandler(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		logger.Log.Infof("Processing get nationality by ID request: %s", idStr)
-
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			logger.Log.Errorf("Invalid ID format: %s - %v", idStr, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error Wrong ID format": err.Error()})
-			return
-		}
-
-		logger.Log.Debugf("Looking up nationality with ID: %d", id)
-		nationalities, err := models.GetNationalities(db, c.Request.Context(), models.NationalityFilter{ID: id})
-		if err != nil {
-			logger.Log.Errorf("Failed to get nationality by ID %d: %v", id, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error during getting": err.Error()})
-			return
-		}
-
-		if len(nationalities) == 0 {
-			logger.Log.Warnf("Nationality with ID %d not found", id)
-			c.JSON(http.StatusNotFound, gin.H{"error": "nationality not found"})
-			return
-		}
-
-		logger.Log.Infof("Successfully retrieved nationality with ID %d", id)
-		c.JSON(http.StatusOK, nationalities[0])
-	}
-}
-
 // CreateNationalityHandler godoc
 // @Summary Create a new nationality
 // @Description Create a new nationality entry in the database
 // @Tags nationalities
 // @Accept json
 // @Produce json
-// @Param nationality body object true "Nationality object with name field"
+// @Param nationality body models.NationalityCreateRequest true "Nationality data (name is required for enrichment)"
 // @Success 201 {object} models.Nationality "Successfully created nationality"
 // @Failure 400 {object} map[string]string "Invalid request"
 // @Failure 500 {object} map[string]string "Internal server error"

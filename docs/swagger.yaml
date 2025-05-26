@@ -7,10 +7,20 @@ definitions:
       name:
         type: string
     type: object
+  models.GenderCreateRequest:
+    properties:
+      name:
+        type: string
+    type: object
   models.Nationality:
     properties:
       id:
         type: integer
+      name:
+        type: string
+    type: object
+  models.NationalityCreateRequest:
+    properties:
       name:
         type: string
     type: object
@@ -122,7 +132,7 @@ paths:
         name: gender
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/models.GenderCreateRequest'
       produces:
       - application/json
       responses:
@@ -176,44 +186,6 @@ paths:
               type: string
             type: object
       summary: Delete a gender
-      tags:
-      - genders
-    get:
-      consumes:
-      - application/json
-      description: Get a single gender by its ID
-      parameters:
-      - description: Gender ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully retrieved gender
-          schema:
-            $ref: '#/definitions/models.Gender'
-        "400":
-          description: Invalid ID format
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Gender not found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get a gender by ID
       tags:
       - genders
     put:
@@ -299,12 +271,12 @@ paths:
       - application/json
       description: Create a new nationality entry in the database
       parameters:
-      - description: Nationality object with name field
+      - description: Nationality data (name is required for enrichment)
         in: body
         name: nationality
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/models.NationalityCreateRequest'
       produces:
       - application/json
       responses:
@@ -358,44 +330,6 @@ paths:
               type: string
             type: object
       summary: Delete a nationality
-      tags:
-      - nationalities
-    get:
-      consumes:
-      - application/json
-      description: Get a single nationality by its ID
-      parameters:
-      - description: Nationality ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully retrieved nationality
-          schema:
-            $ref: '#/definitions/models.Nationality'
-        "400":
-          description: Invalid ID format
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Nationality not found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get a nationality by ID
       tags:
       - nationalities
     put:

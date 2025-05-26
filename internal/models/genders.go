@@ -12,6 +12,10 @@ type Gender struct {
 	Name string `json:"name"`
 }
 
+type GenderCreateRequest struct {
+	Name string `json:"name"`
+}
+
 type GenderFilter struct {
 	ID    int    `json:"id,omitempty"`
 	Name  string `json:"name,omitempty"`

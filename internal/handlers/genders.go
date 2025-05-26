@@ -68,56 +68,13 @@ func GetGendersHandler(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// GetGenderByIDHandler godoc
-// @Summary Get a gender by ID
-// @Description Get a single gender by its ID
-// @Tags genders
-// @Accept json
-// @Produce json
-// @Param id path integer true "Gender ID"
-// @Success 200 {object} models.Gender "Successfully retrieved gender"
-// @Failure 400 {object} map[string]string "Invalid ID format"
-// @Failure 404 {object} map[string]string "Gender not found"
-// @Failure 500 {object} map[string]string "Internal server error"
-// @Router /genders/{id} [get]
-func GetGenderByIDHandler(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		idStr := c.Param("id")
-		logger.Log.Infof("Processing get gender by ID request: %s", idStr)
-
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			logger.Log.Errorf("Invalid ID format: %s - %v", idStr, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error Wrong ID format": err.Error()})
-			return
-		}
-
-		logger.Log.Debugf("Looking up gender with ID: %d", id)
-		genders, err := models.GetGenders(db, c.Request.Context(), models.GenderFilter{ID: id})
-		if err != nil {
-			logger.Log.Errorf("Failed to get gender by ID %d: %v", id, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error during getting": err.Error()})
-			return
-		}
-
-		if len(genders) == 0 {
-			logger.Log.Warnf("Gender with ID %d not found", id)
-			c.JSON(http.StatusNotFound, gin.H{"error": "gender not found"})
-			return
-		}
-
-		logger.Log.Infof("Successfully retrieved gender with ID %d", id)
-		c.JSON(http.StatusOK, genders[0])
-	}
-}
-
 // CreateGenderHandler godoc
 // @Summary Create a new gender
 // @Description Create a new gender entry in the database
 // @Tags genders
 // @Accept json
 // @Produce json
-// @Param gender body object true "Gender object with name field"
+// @Param gender body models.GenderCreateRequest true "Gender object with name field"
 // @Success 201 {object} models.Gender "Successfully created gender"
 // @Failure 400 {object} map[string]string "Invalid request"
 // @Failure 500 {object} map[string]string "Internal server error"

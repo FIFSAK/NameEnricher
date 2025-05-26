@@ -94,7 +94,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/models.GenderCreateRequest"
                         }
                     }
                 ],
@@ -127,63 +127,6 @@ const docTemplate = `{
             }
         },
         "/genders/{id}": {
-            "get": {
-                "description": "Get a single gender by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "genders"
-                ],
-                "summary": "Get a gender by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Gender ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully retrieved gender",
-                        "schema": {
-                            "$ref": "#/definitions/models.Gender"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Gender not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
             "put": {
                 "description": "Update an existing gender by ID",
                 "consumes": [
@@ -364,12 +307,12 @@ const docTemplate = `{
                 "summary": "Create a new nationality",
                 "parameters": [
                     {
-                        "description": "Nationality object with name field",
+                        "description": "Nationality data (name is required for enrichment)",
                         "name": "nationality",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/models.NationalityCreateRequest"
                         }
                     }
                 ],
@@ -402,63 +345,6 @@ const docTemplate = `{
             }
         },
         "/nationalities/{id}": {
-            "get": {
-                "description": "Get a single nationality by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "nationalities"
-                ],
-                "summary": "Get a nationality by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Nationality ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successfully retrieved nationality",
-                        "schema": {
-                            "$ref": "#/definitions/models.Nationality"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid ID format",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Nationality not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
             "put": {
                 "description": "Update an existing nationality by ID",
                 "consumes": [
@@ -901,12 +787,28 @@ const docTemplate = `{
                 }
             }
         },
+        "models.GenderCreateRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Nationality": {
             "type": "object",
             "properties": {
                 "id": {
                     "type": "integer"
                 },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.NationalityCreateRequest": {
+            "type": "object",
+            "properties": {
                 "name": {
                     "type": "string"
                 }
